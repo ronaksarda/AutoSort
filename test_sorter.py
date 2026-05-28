@@ -118,7 +118,7 @@ class TestDirectorySorting:
                              exclude_hidden=False, min_bytes=-1, max_bytes=-1,
                              ext_filter=None, ext_exclude=None)
         assert res.total_files == 1
-        assert not (dst / "Images" / "photo.jpg").exists()
+        assert not (dst / "Images" / "Photos" / "photo.jpg").exists()
 
     def test_move_relocates_files(self, tmp_path):
         src = tmp_path / "src"
@@ -131,7 +131,7 @@ class TestDirectorySorting:
                              exclude_hidden=False, min_bytes=-1, max_bytes=-1,
                              ext_filter=None, ext_exclude=None)
         assert res.total_files == 1
-        assert (dst / "Images" / "photo.jpg").exists()
+        assert (dst / "Images" / "Photos" / "photo.jpg").exists()
         assert not (src / "photo.jpg").exists()
 
     def test_case_insensitive_folder_reuse(self, tmp_path):
@@ -140,8 +140,9 @@ class TestDirectorySorting:
         src.mkdir()
         dst.mkdir()
         
-        # Pre-create lowercase category folder "images"
+        # Pre-create lowercase category/subcategory folder "images/photos"
         (dst / "images").mkdir()
+        (dst / "images" / "photos").mkdir()
         _touch(src / "photo.jpg", b"image data")
 
         res = sort_directory(src, dst, "copy", workers=1, max_depth=1, dedup=False,
@@ -150,7 +151,26 @@ class TestDirectorySorting:
         
         dest = res.records[0].destination
         assert dest is not None
-        assert dest.parent.name == "images"  # Should reuse lowercase "images"
+        assert dest.parent.name == "photos"
+        assert dest.parent.parent.name == "images"
+
+    def test_extension_folder_reuse(self, tmp_path):
+        src = tmp_path / "src"
+        dst = tmp_path / "dst"
+        src.mkdir()
+        dst.mkdir()
+        
+        # Pre-create folder matching extension name at top-level
+        (dst / "py").mkdir()
+        _touch(src / "script.py", b"print(1)")
+
+        res = sort_directory(src, dst, "copy", workers=1, max_depth=1, dedup=False,
+                             exclude_hidden=False, min_bytes=-1, max_bytes=-1,
+                             ext_filter=None, ext_exclude=None)
+        
+        dest = res.records[0].destination
+        assert dest is not None
+        assert dest.parent.name == "py"
 
 
 class TestAppGuiRequest:

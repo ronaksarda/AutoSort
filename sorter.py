@@ -367,10 +367,41 @@ def _safe_dest(dest_dir: Path, name: str) -> Path:
     return dest
 
 
-def _apply_file(rec: FileRecord, root_out: Path, copy: bool) -> None:
-    """Action: Copies or moves a file into its resolved category directory, ensuring collision resolution."""
-    cat = next((e.name for e in os.scandir(root_out) if e.is_dir() and e.name.lower() == rec.category.lower()), rec.category) if root_out.exists() else rec.category
-    dest_dir = root_out / cat
+def _find_matching_dir(existing_dirs: list[Path], ext: str, sub: str, cat: str) -> Path | None:
+    """Finds any existing directory matching the extension, subcategory, or category name case-insensitively."""
+    ext_lower, sub_lower, cat_lower = ext.lower(), sub.lower(), cat.lower()
+    for d in existing_dirs:
+        if d.name.lower() == ext_lower: return d
+    for d in existing_dirs:
+        if d.name.lower() == sub_lower: return d
+    for d in existing_dirs:
+        if d.name.lower() == cat_lower: return d
+    return None
+
+
+def _resolve_case_in_list(existing_dirs: list[Path], parent: Path, name: str) -> Path:
+    """Resolves the casing of a directory segment using the existing directories list."""
+    name_lower = name.lower()
+    for d in existing_dirs:
+        if d.parent == parent and d.name.lower() == name_lower:
+            return d
+    return parent / name
+
+
+def _apply_file(rec: FileRecord, root_out: Path, copy: bool, existing_dirs: list[Path], dirs_lock: threading.Lock) -> None:
+    """Action: Copies or moves a file into a matching existing directory or the default category/subcategory folder."""
+    with dirs_lock:
+        matched = _find_matching_dir(existing_dirs, rec.extension, rec.subcategory, rec.category)
+        if matched:
+            dest_dir = matched
+        else:
+            category_dir = _resolve_case_in_list(existing_dirs, root_out, rec.category)
+            dest_dir = _resolve_case_in_list(existing_dirs, category_dir, rec.subcategory)
+            if category_dir not in existing_dirs:
+                existing_dirs.append(category_dir)
+            if dest_dir not in existing_dirs:
+                existing_dirs.append(dest_dir)
+
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = _safe_dest(dest_dir, rec.name)
     try:
@@ -470,8 +501,18 @@ def sort_directory(
         print(f"[sorter] {'Copying' if copy else 'Moving'} {len(records):,} files...",
               file=sys.stderr)
 
+        existing_dirs = []
+        dirs_lock = threading.Lock()
+        if output_root.exists():
+            try:
+                for root, dirs, _ in os.walk(output_root):
+                    for d in dirs:
+                        existing_dirs.append(Path(root) / d)
+            except OSError:
+                pass
+
         def _apply(rec: FileRecord) -> FileRecord:
-            _apply_file(rec, output_root, copy)
+            _apply_file(rec, output_root, copy, existing_dirs, dirs_lock)
             prog.advance()
             return rec
 
