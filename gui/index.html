@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagicSort PRO</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left: Control Sidebar -->
+        <aside class="sidebar">
+            <div class="brand-header">
+                <div class="logo-box">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>MagicSort</h1>
+                    <span class="badge-pro">PRO</span>
+                </div>
+            </div>
+
+            <!-- Directory Section -->
+            <div class="sidebar-section">
+                <div class="section-label">Target Directories</div>
+                
+                <div class="input-field">
+                    <label for="source-input">Source Folder</label>
+                    <div class="input-box">
+                        <input type="text" id="source-input" placeholder="Select source folder..." autocomplete="off">
+                        <button id="btn-browse-source" class="btn-browse">Browse</button>
+                    </div>
+                </div>
+
+                <div class="input-field">
+                    <label for="out-input">Destination Folder</label>
+                    <div class="input-box">
+                        <input type="text" id="out-input" placeholder="Select output folder..." autocomplete="off">
+                        <button id="btn-browse-out" class="btn-browse">Browse</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Options Section -->
+            <div class="sidebar-section">
+                <div class="section-label">Options</div>
+
+                <div class="option-row">
+                    <div class="option-info">
+                        <span class="option-name">Copy Mode</span>
+                        <span class="option-desc">Keep original source files</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="mode-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="option-row">
+                    <div class="option-info">
+                        <span class="option-name">Deduplication</span>
+                        <span class="option-desc">Mark duplicates by SHA-256</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="dedup-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- CTAs -->
+            <div class="sidebar-footer">
+                <button id="btn-dryrun" class="btn btn-secondary">Analyze (Dry Run)</button>
+                <button id="btn-run" class="btn btn-primary">Organize Files</button>
+            </div>
+        </aside>
+
+        <!-- Right: Main Dashboard Area -->
+        <main class="main-dashboard">
+            <div class="workspace-viewport">
+                <!-- Welcome/Idle View -->
+                <div class="welcome-box" id="welcome-view">
+                    <div class="welcome-icon">
+                        <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                    </div>
+                    <h2>File Sorter Console</h2>
+                    <p>Select target folders in the sidebar to analyze directory storage or perform file categorization. Powered by a high-speed multi-threaded scanning engine.</p>
+                </div>
+
+                <!-- Category Breakdown Grid -->
+                <div class="breakdown-panel" id="results-panel" style="display: none;">
+                    <!-- Numerical Statistics -->
+                    <div class="stats-panel" id="mini-stats">
+                        <div class="stat-item">
+                            <span class="stat-val" id="stat-files">0</span>
+                            <span class="stat-lbl">Processed</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-val" id="stat-time">0.00s</span>
+                            <span class="stat-lbl">Duration</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-val" id="stat-rate">0/s</span>
+                            <span class="stat-lbl">Throughput</span>
+                        </div>
+                    </div>
+
+                    <div class="panel-title">File Types Distribution</div>
+                    <div class="breakdown-grid">
+                        <div class="breakdown-card category-images">
+                            <span class="cat-count" id="count-images">0</span>
+                            <span class="cat-name">Images</span>
+                        </div>
+                        <div class="breakdown-card category-docs">
+                            <span class="cat-count" id="count-docs">0</span>
+                            <span class="cat-name">Documents</span>
+                        </div>
+                        <div class="breakdown-card category-audio">
+                            <span class="cat-count" id="count-audio">0</span>
+                            <span class="cat-name">Audio & Video</span>
+                        </div>
+                        <div class="breakdown-card category-archives">
+                            <span class="cat-count" id="count-archives">0</span>
+                            <span class="cat-name">Archives</span>
+                        </div>
+                        <div class="breakdown-card category-code">
+                            <span class="cat-count" id="count-code">0</span>
+                            <span class="cat-name">Code</span>
+                        </div>
+                        <div class="breakdown-card category-others">
+                            <span class="cat-count" id="count-others">0</span>
+                            <span class="cat-name">Others</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Console Console -->
+                <div class="terminal-panel" id="console-panel" style="display: none;">
+                    <div class="terminal-header">
+                        <span>Terminal Output</span>
+                    </div>
+                    <div class="terminal-body">
+                        <pre id="log-output">Awaiting operation...</pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
