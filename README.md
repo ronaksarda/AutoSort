@@ -1,131 +1,115 @@
-# MagicSort PRO 🚀
+# MagicSort PRO
 
-A high-performance directory file sorter featuring a compiled parallel C++ scanning core, native Win32 ctypes fallback, and a rich Web GUI dashboard. 
+MagicSort PRO is a Windows-focused file organization tool that sorts directories into categorized folders. It combines a compiled C++ scanning backend, a native Win32 fallback, and a Python-driven sorting layer. The project also includes a browser-based GUI for interactive directory browsing and sorting.
 
----
+## Overview
 
-## 🎨 Web GUI Dashboard
-MagicSort PRO includes a premium, responsive Web GUI console.
-* To launch the Web GUI:
-  ```powershell
-  python app.py
-  ```
-  This starts the backend API server and automatically opens your web browser to `http://localhost:8000`.
+Key capabilities:
+- Multi-backend directory scanning with a compiled C++ DLL, Win32 native scanning, and Python fallback
+- File classification by extension with detailed category and subcategory metadata
+- Dry-run analysis mode that does not modify files by default
+- Move and copy modes for file organization
+- Duplicate detection via SHA-256 hashing
+- Web GUI interface served from `app.py`
+- Packaging support for a standalone executable with `package.py`
 
----
+## Repository Structure
 
-## 🏗️ Architecture
+- `app.py` - Web GUI server and API entry point
+- `sorter.py` - Core sorting and scanning logic
+- `build.py` - Builds `scanner.dll` from `scanner.cpp`
+- `package.py` - Builds a single-file executable using PyInstaller
+- `rules.py` - Extension classification rules and category metadata
+- `scanner.cpp` - C++ directory scanning implementation
+- `gui/` - Web interface assets
+- `test_sorter.py` - Unit test coverage for sorting logic
 
-```
-┌─────────────────────────────────────────────────┐
-│  Scan Layer                                     │
-│    1. scanner.dll  ← Compiled C++ (Parallel)    │
-│    2. win32_scanner ← Win32 ctypes (Native)     │
-│    3. os.scandir   ← Cross-platform fallback    │
-└──────────────────────┬──────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────┐
-│  Python Layer                                   │
-│    • Classification (300+ extension rules, O(1))│
-│    • Filtering      (Extension, size, hidden)   │
-│    • Deduplication  (Parallel SHA-256 hashing)  │
-│    • Move / Copy    (Threaded disk I/O)         │
-└─────────────────────────────────────────────────┘
-```
+## Requirements
 
----
+- Python 3.12 or newer
+- Windows platform for the native scanner backends
+- Optional: MinGW `g++` to build `scanner.dll` for best scan performance
 
-## ⚡ Performance
+The Python components do not require external package dependencies for normal operation.
 
-Highly optimized to handle massive directories with low overhead:
+## Installation
 
-| Files  | Backend Scan Engine    | Scan Time | Throughput      |
-|--------|------------------------|-----------|-----------------|
-| 50,000 | C++ DLL (Parallel)     | ~0.3s     | ~160,000 files/s|
-| 50,000 | Win32 ctypes (Native)  | ~0.5s     | ~95,000 files/s |
-| 50,000 | Python os.scandir      | ~2.0s     | ~25,000 files/s |
+1. Clone the repository.
+2. Ensure Python 3.12+ is installed.
+3. Optionally install MinGW if you want to compile `scanner.dll`.
 
----
+## Building the Scanner Backend
 
-## ⚙️ Requirements
+To compile the native scanning library from `scanner.cpp`:
 
-- Python 3.12+
-- No external Python package dependencies required!
-- *(Optional)* MinGW `g++` to compile the C++ DLL for maximum scanning speed.
-
----
-
-## 🛠️ Compilation & Packaging
-
-### Compile scanner.dll:
 ```powershell
 python build.py
 ```
 
-### Build standalone executable:
-To build a standalone single-file executable (`dist/MagicSort.exe`):
+If `build.py` cannot find `g++`, install MinGW and rerun the command.
+
+## Running the Web GUI
+
+Start the web interface with:
+
+```powershell
+python app.py
+```
+
+The server listens on port `8000` and serves the GUI from the `gui/` directory. It uses a background thread to process requests and coordinate directory selection dialogs.
+
+## CLI Usage
+
+Basic analysis without moving files:
+
+```powershell
+python sorter.py C:\path\to\directory
+```
+
+Move files into organized folders:
+
+```powershell
+python sorter.py C:\path\to\directory --move --out C:\organized
+```
+
+Copy files instead of moving them:
+
+```powershell
+python sorter.py C:\path\to\directory --copy --out C:\organized
+```
+
+Find duplicates without modifying files:
+
+```powershell
+python sorter.py C:\path\to\directory --dedup
+```
+
+Use the help command to view all available options:
+
+```powershell
+python sorter.py --help
+```
+
+## Packaging as a Standalone Executable
+
+To build a single-file executable using PyInstaller:
+
 ```powershell
 python package.py
 ```
 
----
+The output executable is created in the `dist/` folder.
 
-## 💻 CLI Usage Examples
+## Testing
 
-### 1. Dry Run (Analyze only, no files modified)
+Run the unit tests to verify functionality:
+
 ```powershell
-python sorter.py C:\Users\name\Downloads
-```
-
-### 2. Move files into organized category folders
-```powershell
-python sorter.py C:\messy_dir --move --out C:\organized_dir
-```
-
-### 3. Copy files and filter by extensions recursively (depth = unlimited)
-```powershell
-python sorter.py C:\source_dir --copy --out C:\dest_dir --ext py ts js --depth 0
-```
-
-### 4. Scan and flag duplicate files using SHA-256 (no files moved)
-```powershell
-python sorter.py C:\images --dedup
-```
-
----
-
-## 📂 Output Folder Structure
-
-By default, sorted files land in nested `Category/Subcategory` folders:
-```
-<destination_root>/
-  Images/
-    Photos/       # .jpg, .jpeg, .heic ...
-    Graphics/     # .png, .bmp ...
-  Code/
-    Python/       # .py ...
-    Web/          # .html, .css ...
-    C_Cpp/        # .c, .cpp, .h ...
-  Documents/
-    PDF/          # .pdf ...
-    Word/         # .docx ...
-```
-
-### 🧠 Smart Folder Reuse (Case-Insensitive)
-To keep your directories clean, the sorter will scan the destination root before creating new folders. If an existing folder matches the file's **extension** (e.g. `py`), **subcategory** (e.g. `python`), or **category** (e.g. `code`) case-insensitively, the file is automatically shifted into that existing folder instead of creating a new one.
-
----
-
-## 🧪 Testing
-
-Run the comprehensive unit test suite to verify stability:
-```powershell
-pip install pytest
 python -m pytest test_sorter.py -v
 ```
 
----
+## Notes
 
-## 🤝 Credits & Attribution
-
-This project's core logic, performance architecture, and debugging were entirely driven and overseen by me, while the implementation details, standard boilerplates, and syntax refinements were generated with the assistance of Claude and Gemini.
+- `sorter.py` implements a prioritized scanning strategy: compiled DLL first, native Win32 scan second, and Python `os.scandir` as a fallback.
+- The project is intended for Windows environments, but the Python fallback improves portability for non-native scanning situations.
+- The GUI uses local browser-based controls and communicates with `app.py` through HTTP endpoints.
